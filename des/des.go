@@ -1,15 +1,58 @@
 package des
 
 import (
+	"errors"
 	"fmt"
+	"math/big"
 	"slices"
 	"strconv"
 	"strings"
 )
 
-func Code(word, key string) ([]int, []int) {
+func Code(word, key string) (string, error) {
 	binWord := ToBinary(word)
 	binKey := ToBinary(key)
+	binWords := make([][]int, 0)
+
+	for w := range slices.Chunk(binWord, 64) {
+		binWords = append(binWords, w)
+	}
+	if len(binWords[len(binWords)-1]) < 64 {
+		binWords[len(binWords)-1] = append(make([]int, 64-len(binWords[len(binWords)-1])), binWords[len(binWords)-1]...)
+	}
+	cips := make([][]int, len(binWords))
+	for i, w := range binWords {
+		cips[i] = CodeBlock(w, binKey)
+	}
+	result := ""
+	for _, c := range cips {
+		hex, err := ToHex(c)
+		if err != nil {
+			return "", err
+		}
+		result += hex
+	}
+	return result, nil
+}
+
+func Decode(cip, key string) (string, error) {
+	cips, err := FromHexToBinary(cip)
+	if err != nil {
+		return "", err
+	}
+	binKey := ToBinary(key)
+	binWords := make([][]int, len(cips))
+	for i, c := range cips {
+		binWords[i] = DecodeBlock(c, binKey)
+	}
+	result := ""
+	for _, w := range binWords {
+		result += ToWord(w)
+	}
+	return result, nil
+}
+
+func CodeBlock(binWord, binKey []int) []int {
 	ipWord := BlockPermutation(binWord, IP)
 	ipKey := BlockPermutation(binKey, PC1)
 	keyRound := ConvertKeyInRound(ipKey, 1)
@@ -27,21 +70,16 @@ func Code(word, key string) ([]int, []int) {
 		L = R
 		R = xorLR
 	}
-	fmt.Println(Format(BlockPermutation(ArrayMerge(L, R), FP)))
-	return BlockPermutation(ArrayMerge(L, R), FP), binWord
+	return BlockPermutation(ArrayMerge(L, R), FP)
 }
 
-func Decode(cipWord []int, key string) []int {
+func DecodeBlock(cipWord, binKey []int) []int {
 	keys := make([][]int, 16)
-	binKey := ToBinary(key)
 	ipKey := BlockPermutation(binKey, PC1)
 	keys[0] = ConvertKeyInRound(ipKey, 1)
 	for i := 1; i < 16; i++ {
 		keys[i] = ConvertKeyInRound(keys[i-1], i+1)
 	}
-	//for i := 0; i < 16; i++ {
-	//	fmt.Printf("Key %d: %s\n", i+1, Format(keys[i]))
-	//}
 	ipCipWord := BlockPermutation(cipWord, IP)
 	L, R := ArrToHalf(ipCipWord)
 	for i := 15; i >= 0; i-- {
@@ -54,7 +92,6 @@ func Decode(cipWord []int, key string) []int {
 		R = L
 		L = xorLR
 	}
-	fmt.Println(Format(BlockPermutation(ArrayMerge(L, R), FP)))
 	return BlockPermutation(ArrayMerge(L, R), FP)
 }
 
@@ -66,10 +103,42 @@ func ToWord(cip []int) string {
 	word := ""
 	for _, char := range chars {
 		ch, _ := binaryToByte(char)
-		fmt.Printf("%x\n", ch)
 		word += string(byte(ch))
 	}
 	return word
+}
+
+func ToHex(cip []int) (string, error) {
+	bits := Format(cip)
+	bigInt := big.NewInt(0)
+	bigInt, ok := bigInt.SetString(bits, 2)
+	if !ok {
+		return "", errors.New("ошибка привода числа в строку")
+	}
+	return bigInt.Text(16), nil
+}
+
+func FromHexToBinary(hex string) ([][]int, error) {
+	bigInt := big.NewInt(0)
+	bigInt, ok := bigInt.SetString(hex, 16)
+	if !ok {
+		return nil, errors.New("ошибка привода строки в число")
+	}
+	bits := bigInt.Text(2)
+	cipString := strings.Split(bits, "")
+	cip := make([]int, len(cipString))
+	for i, c := range cipString {
+		ci, err := strconv.Atoi(c)
+		if err != nil {
+			return nil, err
+		}
+		cip[i] = ci
+	}
+	result := make([][]int, 0)
+	for c := range slices.Chunk(cip, 64) {
+		result = append(result, c)
+	}
+	return result, nil
 }
 
 func ConvertKeyInRound(cipKey []int, numRound int) []int {
