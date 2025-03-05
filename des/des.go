@@ -24,13 +24,13 @@ func Code(word, key string) (string, error) {
 	for i, w := range binWords {
 		cips[i] = CodeBlock(w, binKey)
 	}
-	result := ""
+	bits := ""
 	for _, c := range cips {
-		hex, err := ToHex(c)
-		if err != nil {
-			return "", err
-		}
-		result += hex
+		bits += Format(c)
+	}
+	result, err := ToHex(bits)
+	if err != nil {
+		return "", err
 	}
 	return result, nil
 }
@@ -103,15 +103,16 @@ func ToWord(cip []int) string {
 	word := ""
 	for _, char := range chars {
 		ch, _ := binaryToByte(char)
-		word += string(byte(ch))
+		if ch != 0 {
+			word += string(byte(ch))
+		}
 	}
 	return word
 }
 
-func ToHex(cip []int) (string, error) {
-	bits := Format(cip)
+func ToHex(cip string) (string, error) {
 	bigInt := big.NewInt(0)
-	bigInt, ok := bigInt.SetString(bits, 2)
+	bigInt, ok := bigInt.SetString(cip, 2)
 	if !ok {
 		return "", errors.New("ошибка привода числа в строку")
 	}
@@ -125,6 +126,13 @@ func FromHexToBinary(hex string) ([][]int, error) {
 		return nil, errors.New("ошибка привода строки в число")
 	}
 	bits := bigInt.Text(2)
+	if len(bits)%64 != 0 {
+		dopZero := ""
+		for range 64 - len(bits)%64 {
+			dopZero += "0"
+		}
+		bits = dopZero + bits
+	}
 	cipString := strings.Split(bits, "")
 	cip := make([]int, len(cipString))
 	for i, c := range cipString {
