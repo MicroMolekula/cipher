@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSA Шифрование и Дешифрование</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4a90e2;
+        }
+
+        h2 {
+            color: #4a90e2;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #357abd;
+        }
+
+        .key-display {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            word-wrap: break-word;
+        }
+
+        .key-display p {
+            margin: 5px 0;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e8f0fe;
+            border: 1px solid #4a90e2;
+            border-radius: 5px;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>RSA Шифрование и Дешифрование</h1>
+
+    <!-- Генерация ключей -->
+    <div>
+        <h2>Генерация ключей</h2>
+        <button onclick="generateKeys()">Сгенерировать ключи</button>
+        <div class="key-display">
+            <p><strong>Публичный ключ:</strong> <span id="publicKey">Не сгенерирован</span></p>
+            <p><strong>Приватный ключ:</strong> <span id="privateKey">Не сгенерирован</span></p>
+        </div>
+    </div>
+
+    <!-- Шифрование -->
+    <div>
+        <h2>Шифрование</h2>
+        <textarea id="encryptInput" placeholder="Введите текст для шифрования"></textarea>
+        <button onclick="encryptText()">Зашифровать</button>
+        <div class="result">
+            <strong>Результат:</strong> <span id="encryptResult"></span>
+        </div>
+    </div>
+
+    <!-- Дешифрование -->
+    <div>
+        <h2>Дешифрование</h2>
+        <textarea id="decryptInput" placeholder="Введите текст для дешифрования"></textarea>
+        <button onclick="decryptText()">Дешифровать</button>
+        <div class="result">
+            <strong>Результат:</strong> <span id="decryptResult"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function generateKeys() {
+        const response = await fetch('http://localhost:8080/api/generate-keys', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        const data = await response.json();
+        document.getElementById('publicKey').textContent = data.publicKey;
+        document.getElementById('privateKey').textContent = data.privateKey;
+    }
+
+    async function encryptText() {
+        const text = document.getElementById('encryptInput').value;
+        const publicKey = document.getElementById('publicKey').textContent;
+        const response = await fetch('http://localhost:8080/api/encrypt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text: text, publicKey: publicKey })
+        });
+        const data = await response.json();
+        document.getElementById('encryptResult').textContent = data.encryptedText;
+    }
+
+    async function decryptText() {
+        const text = document.getElementById('decryptInput').value;
+        const privateKey = document.getElementById('privateKey').textContent;
+        const response = await fetch('http://localhost:8080/api/decrypt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text: text, privateKey: privateKey })
+        });
+        const data = await response.json();
+        document.getElementById('decryptResult').textContent = data.decryptedText;
+    }
+</script>
+</body>
+</html>
