@@ -51,9 +51,7 @@ func Test() {
 }
 
 func Code(num *big.Int, key *Key) *big.Int {
-	cip := num.Exp(num, key.Kn, nil)
-	cip.Mod(cip, key.N)
-	return cip
+	return num.Exp(num, key.Kn, key.N)
 }
 
 func Decode(number *big.Int, key *Key) *big.Int {

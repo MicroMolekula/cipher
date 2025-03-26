@@ -11,7 +11,7 @@ func Lr3() {
 	router := gin.Default()
 	router.Use(CORSMiddleware())
 	router.GET("/api/generate-keys", func(ctx *gin.Context) {
-		enKey, deKey, err := rsa.GenerateKeys(1024)
+		enKey, deKey, err := rsa.GenerateKeys(128)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

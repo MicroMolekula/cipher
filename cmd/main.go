@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	lr.Lr3()
+	lr.Lr4()
 }
